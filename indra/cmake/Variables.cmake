@@ -76,47 +76,52 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(DARWIN 1)
 
-  # NOTE: If specifying a different SDK with CMAKE_OSX_SYSROOT at configure
-  # time you should also specify CMAKE_OSX_DEPLOYMENT_TARGET explicitly,
-  # otherwise CMAKE_OSX_SYSROOT will be overridden here. We can't just check
-  # for it being unset, as it gets set to the system default :(
-
-  # Default to building against the 10.5 SDK if no deployment target is
-  # specified.
-  if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-    # NOTE: setting -isysroot is NOT adequate: http://lists.apple.com/archives/Xcode-users/2007/Oct/msg00696.html
-    # see http://public.kitware.com/Bug/view.php?id=9959 + poppy
-    set(CMAKE_OSX_SYSROOT /Developer/SDKs/MacOSX10.5.sdk)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.5)
-  endif (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-
-  # Use GCC 4.2
-  if (${CMAKE_OSX_SYSROOT} MATCHES "10.5")
-    set(CMAKE_XCODE_ATTRIBUTE_GCC_VERSION "4.2")
-  endif (${CMAKE_OSX_SYSROOT} MATCHES "10.5")
-
-  # NOTE: To attempt an i386/PPC Universal build, add this on the configure line:
-  # -DCMAKE_OSX_ARCHITECTURES:STRING='i386;ppc'
-  # Build only for i386 by default, system default on MacOSX 10.6 is x86_64
-  if (NOT CMAKE_OSX_ARCHITECTURES)
-    set(CMAKE_OSX_ARCHITECTURES i386)
-  endif (NOT CMAKE_OSX_ARCHITECTURES)
-
-  if (CMAKE_OSX_ARCHITECTURES MATCHES "i386" AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc")
-    set(ARCH universal)
-  else (CMAKE_OSX_ARCHITECTURES MATCHES "i386" AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc")
-    if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc")
-      set(ARCH ppc)
-    else (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc")
-      set(ARCH i386)
-    endif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc")
-  endif (CMAKE_OSX_ARCHITECTURES MATCHES "i386" AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc")
+  #SDK Compiler and Deployment targets for XCode
+  
+  # Get the version of Xcode currently installed
+  execute_process(COMMAND "${CMAKE_BUILD_TOOL}" -version COMMAND awk "/Xcode/ {print $NF}"
+  OUTPUT_VARIABLE XCODE_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+  
+  if("${XCODE_VERSION}" VERSION_EQUAL "4.3"
+  OR "${XCODE_VERSION}" VERSION_GREATER "4.3")
+  # Xcode 4.2 ships with SDKs for Mac OS X 10.6 and 10.7
+  # Compile using LLVM-GCC 4.2
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.6)
+  set(CMAKE_OSX_SYSROOT /Developer/SDKs/MacOSX10.6.sdk)
+  set(CMAKE_XCODE_ATTRIBUTE_GCC_VERSION "com.apple.compilers.llvmgcc42")
+  
+elseif("${XCODE_VERSION}" VERSION_EQUAL "4.0"
+  OR "${XCODE_VERSION}" VERSION_GREATER "4.0")
+  message(FATAL_ERROR "Xcode 4.0-4.1 are not supported.")
+  
+elseif("${XCODE_VERSION}" VERSION_EQUAL "3.2"
+  OR "${XCODE_VERSION}" VERSION_GREATER "3.2")
+  # Xcode 3.2 ships with SDKs for Mac OS X 10.5 and 10.6
+  # Compile using GCC 4.0
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.5)
+  set(CMAKE_OSX_SYSROOT /Developer/SDKs/MacOSX10.5.sdk)
+  set(CMAKE_XCODE_ATTRIBUTE_GCC_VERSION "4.0")
+  
+  else ()
+  message(FATAL_ERROR "Xcode older than 3.2 not supported")
+endif ()
+  
+  # Debug information format stays the same
+  set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT dwarf-with-dsym)
+  
+  ## We currently support only 32-bit i386 builds, so use these:
+  set(CMAKE_OSX_ARCHITECTURES i386)
+  set(ARCH i386)
+  set(WORD_SIZE 32)
+  
+  ## But if you want to compile for mixed 32/64 bit, try these
+  # set(CMAKE_OSX_ARCHITECTURES i386;x86_64
+  # set(ARCH universal)
+  # set(WORD_SIZE 64)
 
   set(LL_ARCH ${ARCH}_darwin)
   set(LL_ARCH_DIR universal-darwin)
-  set(WORD_SIZE 32)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
 
 # Default deploy grid
 set(GRID agni CACHE STRING "Target Grid")
