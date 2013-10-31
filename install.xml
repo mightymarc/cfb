@@ -387,9 +387,9 @@
           <key>darwin</key>
           <map>
             <key>md5sum</key>
-						<string>9637f100d68a06bfc667fd331423a445</string>
+						<string>c52fdaf3c310081a5931bfb1cc2c7c79</string>
             <key>url</key>
-						<uri>https://github.com/downloads/catface/catfacebase/fmodapi375mac.tar.gz</uri>
+						<uri>https://bitbucket.org/mightymarc/macosx-build-libraries/downloads/fmod-3.75-darwin-20120111.tar.bz2</uri>
           </map>
           <key>linux</key>
           <map>
